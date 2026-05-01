@@ -10,6 +10,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] });
   }
 
+  // Direct NPI lookup: any 10-digit input bypasses name search.
+  if (/^\d{10}$/.test(q)) {
+    const search = new URLSearchParams({ version: "2.1", number: q });
+    const r = await fetch(`https://npiregistry.cms.hhs.gov/api/?${search}`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = r.ok ? await r.json() : { results: [] };
+    const results = data.results ?? [];
+    const groups = [
+      { type: results[0]?.enumeration_type === "NPI-2" ? 2 : 1, results },
+    ];
+    return NextResponse.json(
+      { groups },
+      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+    );
+  }
+
   const words = q.split(/\s+/);
   const queries: Record<string, string>[] = [];
   if (words.length >= 2) {

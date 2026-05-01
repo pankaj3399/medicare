@@ -125,3 +125,49 @@ export async function tierCostsCol(): Promise<Collection<TierCostDoc>> {
   const db = await getDb();
   return db.collection<TierCostDoc>("tierCosts");
 }
+
+export type CarrierFhirEndpointDoc = {
+  parentOrg: string;
+  fhirBase: string;
+  notes?: string | null;
+  enabled: boolean;
+};
+
+export type PlanNetworkMapDoc = {
+  year: number;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  parentOrg: string;
+  networkIds: string[];
+  networkRefKind?: "Network" | "Organization" | null;
+  networkName?: string | null;
+  lastSyncedAt: Date;
+};
+
+export type DoctorPlanAcceptanceDoc = {
+  npi: string;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  inNetwork: "yes" | "no" | "unknown";
+  source: "fhir" | "manual";
+  reason?: string | null;
+  checkedAt: Date;
+  ttlExpiresAt: Date;
+};
+
+export async function carrierFhirEndpointsCol(): Promise<Collection<CarrierFhirEndpointDoc>> {
+  const db = await getDb();
+  return db.collection<CarrierFhirEndpointDoc>("carrierFhirEndpoints");
+}
+
+export async function planNetworkMapCol(): Promise<Collection<PlanNetworkMapDoc>> {
+  const db = await getDb();
+  return db.collection<PlanNetworkMapDoc>("planNetworkMap");
+}
+
+export async function doctorPlanAcceptanceCol(): Promise<Collection<DoctorPlanAcceptanceDoc>> {
+  const db = await getDb();
+  return db.collection<DoctorPlanAcceptanceDoc>("doctorPlanAcceptance");
+}

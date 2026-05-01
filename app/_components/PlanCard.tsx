@@ -1,6 +1,7 @@
 "use client";
 
 import type { PlanResult, PlanQuote, Drug } from "@/store/wizard";
+import { useDoctorAcceptance } from "./useDoctorAcceptance";
 
 export type PlanCardProps = {
   plan: PlanResult;
@@ -8,7 +9,7 @@ export type PlanCardProps = {
   quote?: PlanQuote;
   isBest: boolean;
   isInCompare: boolean;
-  doctors: { id: string; n: string }[];
+  doctors: { id: string; n: string; npi?: string }[];
   drugs: Drug[];
   countyName?: string | null;
   onCompareToggle: (planId: string) => void;
@@ -32,6 +33,8 @@ export default function PlanCard({
   onCompareToggle,
   onEnroll,
 }: PlanCardProps) {
+  const planKey = `${plan.contractId}-${plan.planId}-${plan.segmentId}`;
+  const acceptance = useDoctorAcceptance(doctors, planKey);
   const otc = plan.otc ?? 0;
   const otcMonthly = Math.round(otc / 12);
   const stars = renderStars(plan.starOverall ?? 0);
@@ -145,12 +148,125 @@ export default function PlanCard({
           <div className="cps">
             {doctors.length > 0 ? (
               <>
-                {doctors.slice(0, 3).map((d) => (
-                  <span key={d.id} className="cp ok">
-                    ✓ {d.n.split(",")[0]} (verify at enrollment)
-                  </span>
-                ))}
-                <span className="cp par">~ Confirm in-network status when you enroll</span>
+                {(() => {
+                  const shown = doctors.slice(0, 3);
+                  type Bucket = "no_endpoint" | "not_listed" | "not_synced" | "transient" | "no_npi" | "loading";
+                  const buckets = new Set<Bucket>();
+                  let anyVerified = false;
+                  const rows = shown.map((d) => {
+                    const label = d.n.split(",")[0];
+                    if (!d.npi) {
+                      buckets.add("no_npi");
+                      return (
+                        <span key={d.id} className="cp par">
+                          • {label}
+                        </span>
+                      );
+                    }
+                    const entry = acceptance[d.npi];
+                    if (!entry) {
+                      buckets.add("loading");
+                      return (
+                        <span key={d.id} className="cp par">
+                          • {label}
+                        </span>
+                      );
+                    }
+                    const verifiedTag = (
+                      tone: "ok" | "no",
+                      text: string,
+                    ) => (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          padding: "1px 7px",
+                          borderRadius: 999,
+                          fontSize: "0.78em",
+                          fontWeight: 600,
+                          letterSpacing: 0.2,
+                          background:
+                            tone === "ok"
+                              ? "rgba(16,150,90,0.10)"
+                              : "rgba(170,170,170,0.18)",
+                          color: tone === "ok" ? "#0f7c4a" : "#666",
+                          border:
+                            tone === "ok"
+                              ? "1px solid rgba(16,150,90,0.25)"
+                              : "1px solid rgba(170,170,170,0.35)",
+                        }}
+                      >
+                        {text}
+                      </span>
+                    );
+                    if (entry.inNetwork === "yes") {
+                      anyVerified = true;
+                      return (
+                        <span
+                          key={d.id}
+                          className="cp par"
+                          title={`Verified live against ${plan.carrier}'s public provider directory (CMS-9115-F).`}
+                        >
+                          • {label}
+                          {verifiedTag("ok", `✓ in-network · ${plan.carrier}`)}
+                        </span>
+                      );
+                    }
+                    if (entry.inNetwork === "no") {
+                      anyVerified = true;
+                      return (
+                        <span
+                          key={d.id}
+                          className="cp par"
+                          title={`Checked live against ${plan.carrier}'s public provider directory (CMS-9115-F).`}
+                        >
+                          • {label}
+                          {verifiedTag("no", `not in ${plan.carrier} network`)}
+                        </span>
+                      );
+                    }
+                    const r = (entry.reason ?? "").toLowerCase();
+                    if (r.includes("no fhir endpoint")) buckets.add("no_endpoint");
+                    else if (r.includes("not found") || r.includes("not in")) buckets.add("not_listed");
+                    else if (r.includes("not synced") || r.includes("mapping")) buckets.add("not_synced");
+                    else if (r.includes("fhir error") || r.includes("aborted") || r.includes("timeout")) buckets.add("transient");
+                    else buckets.add("no_endpoint");
+                    return (
+                      <span key={d.id} className="cp par" title={entry.reason ?? ""}>
+                        • {label}
+                      </span>
+                    );
+                  });
+                  const carrier = plan.carrier;
+                  const footer = (() => {
+                    if (buckets.size === 0) return null;
+                    const prefix = anyVerified ? "Other providers: " : "";
+                    if (buckets.has("no_endpoint")) {
+                      return `${prefix}${carrier} doesn't publish a public provider directory — call ${carrier} to confirm.`;
+                    }
+                    if (buckets.has("transient")) {
+                      return `${prefix}${carrier}'s directory is temporarily unavailable — try again later or call to confirm.`;
+                    }
+                    if (buckets.has("not_synced")) {
+                      return `${prefix}Network data for this plan is still being indexed.`;
+                    }
+                    if (buckets.has("not_listed")) {
+                      return `${prefix}Not listed in ${carrier}'s directory — call to confirm.`;
+                    }
+                    if (buckets.has("no_npi")) {
+                      return `${prefix}Manually-added providers can't be auto-checked — call ${carrier} to confirm.`;
+                    }
+                    if (buckets.has("loading")) {
+                      return `${prefix}Checking ${carrier}'s directory…`;
+                    }
+                    return null;
+                  })();
+                  return (
+                    <>
+                      {rows}
+                      {footer && <span className="cp par">{footer}</span>}
+                    </>
+                  );
+                })()}
               </>
             ) : (
               <>

@@ -25,6 +25,17 @@ export default function StepResults() {
   const goStep = useWizard((s) => s.goStep);
 
   const [sort, setSort] = useState<SortKey>("match");
+  const [verifiableOnly, setVerifiableOnly] = useState(false);
+
+  const VERIFIABLE_PARENT_ORGS = useMemo(() => new Set(["Humana Inc."]), []);
+
+  const verifiableCount = useMemo(
+    () =>
+      plans.filter(
+        (p) => p.parentOrg && VERIFIABLE_PARENT_ORGS.has(p.parentOrg),
+      ).length,
+    [plans, VERIFIABLE_PARENT_ORGS],
+  );
 
   const ranked = useMemo(() => {
     const scored = plans
@@ -40,15 +51,33 @@ export default function StepResults() {
           userState: state,
         }),
       }))
-      .filter((x) => x.match > 0);
+      .filter((x) => x.match > 0)
+      .filter((x) =>
+        !verifiableOnly ||
+        (x.plan.parentOrg ? VERIFIABLE_PARENT_ORGS.has(x.plan.parentOrg) : false),
+      );
+    const isVerifiable = (parentOrg?: string | null) =>
+      parentOrg ? VERIFIABLE_PARENT_ORGS.has(parentOrg) : false;
+    const userHasNpi = docs.some((d) => d.npi);
+
     if (sort === "premium") scored.sort((a, b) => a.plan.premiumMonthly - b.plan.premiumMonthly);
     else if (sort === "oop") scored.sort((a, b) => a.plan.moop - b.plan.moop);
     else if (sort === "stars") scored.sort((a, b) => (b.plan.starOverall ?? 0) - (a.plan.starOverall ?? 0));
     else if (sort === "otc") scored.sort((a, b) => (b.plan.otc ?? 0) - (a.plan.otc ?? 0));
     else if (sort === "drugs") scored.sort((a, b) => (quotes[a.plan.id]?.annualEstimate ?? Infinity) - (quotes[b.plan.id]?.annualEstimate ?? Infinity));
+    else if (userHasNpi && !verifiableOnly) {
+      // Best Match with a real doctor added: lift verifiable-carrier plans to
+      // the top while preserving relative match-score order within each group.
+      scored.sort((a, b) => {
+        const av = isVerifiable(a.plan.parentOrg) ? 1 : 0;
+        const bv = isVerifiable(b.plan.parentOrg) ? 1 : 0;
+        if (av !== bv) return bv - av;
+        return b.match - a.match;
+      });
+    }
     else scored.sort((a, b) => b.match - a.match);
     return scored;
-  }, [plans, quotes, sort, med, otcMin, prios, w, docs.length, drgs.length, state]);
+  }, [plans, quotes, sort, med, otcMin, prios, w, docs.length, drgs.length, state, verifiableOnly, VERIFIABLE_PARENT_ORGS]);
 
   const enroll = (p: PlanResult) =>
     setEnroll({
@@ -105,6 +134,15 @@ export default function StepResults() {
           <button className={`stb${sort === "stars" ? " on" : ""}`} onClick={() => setSort("stars")}>
             CMS Stars
           </button>
+          {docs.some((d) => d.npi) && verifiableCount > 0 && (
+            <button
+              className={`stb${verifiableOnly ? " on" : ""}`}
+              onClick={() => setVerifiableOnly((v) => !v)}
+              title="Show only plans where we can auto-verify your doctors against the carrier's directory"
+            >
+              {verifiableOnly ? "✓ " : ""}Doctor-verifiable ({verifiableCount})
+            </button>
+          )}
         </div>
       </div>
       {drgs.length > 0 && (

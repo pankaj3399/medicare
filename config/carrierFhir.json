@@ -1,0 +1,62 @@
+[
+  {
+    "parentOrg": "Humana Inc.",
+    "fhirBase": "https://fhir.humana.com/api/",
+    "notes": "Verified 2026-05-01: returns InsurancePlan Bundle, no auth required.",
+    "enabled": true
+  },
+  {
+    "parentOrg": "Cigna",
+    "fhirBase": "https://fhir.cigna.com/ProviderDirectory/v1/",
+    "notes": "Verified 2026-05-01: returns InsurancePlan Bundle, no auth required.",
+    "enabled": true
+  },
+  {
+    "parentOrg": "UnitedHealth Group, Inc.",
+    "fhirBase": "https://public.fhir.flex.optum.com/R4/",
+    "notes": "Returned HTTP 500 on 2026-05-01 — portal at developer.uhc.com requires org registration.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "CVS Health Corporation",
+    "fhirBase": "https://vteapif1.aetna.com/fhirdemo/v1/patientaccess/",
+    "notes": "Demo endpoint returned 0 results on 2026-05-01. Find prod base on developerportal.aetna.com after registering.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Centene Corporation",
+    "fhirBase": "https://production.api.centene.com/fhir/providerdirectory/",
+    "notes": "Hostname did not resolve on 2026-05-01.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Elevance Health, Inc.",
+    "fhirBase": "https://carelonpd.elevancehealth.com/fhir/",
+    "notes": "Hostname did not resolve on 2026-05-01. See wellpoint.com developer portal.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Kaiser Foundation Health Plan, Inc.",
+    "fhirBase": "https://kpx-service-bus.kp.org/service/hp/mhpo/healthplanproviderv1rc/",
+    "notes": "Timed out on 2026-05-01.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Health Care Service Corporation",
+    "fhirBase": "https://provider-directory.hcsc.com/api/",
+    "notes": "Hostname did not resolve on 2026-05-01.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Blue Cross Blue Shield of Michigan",
+    "fhirBase": "https://providerdirectory.bcbsm.com/fhir/",
+    "notes": "Hostname did not resolve on 2026-05-01.",
+    "enabled": false
+  },
+  {
+    "parentOrg": "Molina Healthcare, Inc.",
+    "fhirBase": "https://api.molinahealthcare.com/providerdirectory/r4/",
+    "notes": "Returned HTTP 403 on 2026-05-01.",
+    "enabled": false
+  }
+]

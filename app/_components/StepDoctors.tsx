@@ -96,7 +96,7 @@ export default function StepDoctors() {
                 autoCorrect="off"
                 autoCapitalize="words"
                 spellCheck={false}
-                placeholder="Type any doctor name — e.g. Smith, Dr. Johnson, cardiologist…"
+                placeholder="Type a doctor name OR paste their 10-digit NPI…"
                 value={q}
                 onChange={(e) => {
                   setQ(e.target.value);
@@ -187,8 +187,10 @@ export default function StepDoctors() {
         <div className="cal bl">
           <span className="cali">💡</span>
           <div>
-            <strong style={{ fontWeight: 600 }}>Tip:</strong> Type a last name for best
-            results. E.g. "Smith" or "Johnson". Results come from the live CMS NPI database.
+            <strong style={{ fontWeight: 600 }}>Tip:</strong> Type a last name (e.g. "Smith"),
+            or paste a 10-digit NPI number for an exact match. Results come from the live CMS
+            NPI database. <strong>Pick from the dropdown</strong> — using "+ Add" creates a
+            manual entry without an NPI, which can't be checked against carrier networks.
           </div>
         </div>
       </div>
