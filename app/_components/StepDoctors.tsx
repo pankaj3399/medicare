@@ -6,6 +6,7 @@ import { searchDoctors } from "@/lib/npi";
 
 export default function StepDoctors() {
   const docs = useWizard((s) => s.docs);
+  const state = useWizard((s) => s.state);
   const addDoctor = useWizard((s) => s.addDoctor);
   const removeDoctor = useWizard((s) => s.removeDoctor);
   const goStep = useWizard((s) => s.goStep);
@@ -29,14 +30,14 @@ export default function StepDoctors() {
     setOpen(true);
     debounceRef.current = setTimeout(async () => {
       const used = docs.map((d) => d.id);
-      const results = await searchDoctors(q, used);
+      const results = await searchDoctors(q, used, state || undefined);
       setHits(results);
       setLoading(false);
     }, 250);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [q, docs]);
+  }, [q, docs, state]);
 
   const pick = (d: Doctor) => {
     addDoctor(d);
@@ -96,7 +97,7 @@ export default function StepDoctors() {
                 autoCorrect="off"
                 autoCapitalize="words"
                 spellCheck={false}
-                placeholder="Type any doctor name — e.g. Smith, Dr. Johnson, cardiologist…"
+                placeholder="Type a doctor name OR paste their 10-digit NPI…"
                 value={q}
                 onChange={(e) => {
                   setQ(e.target.value);
@@ -184,11 +185,23 @@ export default function StepDoctors() {
             ))}
           </div>
         )}
+        <div style={{ marginTop: 8, fontSize: 13, color: "var(--i2)" }}>
+          Don&apos;t see your doctor?{" "}
+          <a
+            onClick={() => goStep(4)}
+            style={{ color: "var(--teal)", cursor: "pointer", textDecoration: "underline" }}
+          >
+            Skip this step
+          </a>{" "}
+          — we&apos;ll verify network at enrollment.
+        </div>
         <div className="cal bl">
           <span className="cali">💡</span>
           <div>
-            <strong style={{ fontWeight: 600 }}>Tip:</strong> Type a last name for best
-            results. E.g. "Smith" or "Johnson". Results come from the live CMS NPI database.
+            <strong style={{ fontWeight: 600 }}>Tip:</strong> Type a last name (e.g. "Smith"),
+            or paste a 10-digit NPI number for an exact match. Results come from the live CMS
+            NPI database. <strong>Pick from the dropdown</strong> — using "+ Add" creates a
+            manual entry without an NPI, which can't be checked against carrier networks.
           </div>
         </div>
       </div>

@@ -307,5 +307,27 @@ export function zipToState(zip: string): string {
   if (n >= 2001 && n <= 2999) return "MA";
   if (n >= 48001 && n <= 49999) return "MI";
   if (n >= 85001 && n <= 86999) return "AZ";
+  if (n >= 40000 && n <= 42799) return "KY";
+  if (n >= 43000 && n <= 45999) return "OH";
+  if (n >= 35000 && n <= 36999) return "AL";
+  if (n >= 37000 && n <= 38599) return "TN";
+  if (n >= 27000 && n <= 27999) return "NC";
+  if (n >= 29000 && n <= 29999) return "SC";
+  if (n >= 80000 && n <= 81699) return "CO";
+  if (n >= 70000 && n <= 71499) return "LA";
+  if (n >= 39000 && n <= 39799) return "MS";
+  if (n >= 23000 && n <= 24699) return "VA";
+  if (n >= 73000 && n <= 74999) return "OK";
+  if (n >= 87000 && n <= 88499) return "NM";
+  if (n >= 50000 && n <= 52899) return "IA";
+  if (n >= 53000 && n <= 54999) return "WI";
+  if (n >= 55000 && n <= 56799) return "MN";
+  if (n >= 57000 && n <= 57799) return "SD";
+  if (n >= 58000 && n <= 58899) return "ND";
+  if (n >= 59000 && n <= 59999) return "MT";
+  if (n >= 63000 && n <= 65899) return "MO";
+  if (n >= 66000 && n <= 67999) return "KS";
+  if (n >= 68000 && n <= 69399) return "NE";
+  if (n >= 82000 && n <= 83199) return "WY";
   return "NATIONAL";
 }

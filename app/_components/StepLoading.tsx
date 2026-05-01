@@ -54,28 +54,40 @@ export default function StepLoading() {
 
         let quotes: Record<string, PlanQuote> = {};
         if (drgs.length && plans.length) {
-          const quoteRes = await fetch("/api/plans/quote", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              year: yr,
-              planIds: plans.map((p) => p.id),
-              drugs: drgs.map((d) => ({
-                rxcui: d.rxcui ?? null,
-                ndc: d.ndc ?? null,
-                scdRxCuis: d.scdRxCuis ?? [],
-                fillsPerYear: d.fillsPerYear,
-                name: d.n,
-              })),
-              options: {
-                pharmacy: mailOrder ? "mail" : "preferred_retail",
-                estimateMode: "naive",
-              },
-            }),
-          });
-          if (quoteRes.ok) {
-            const qd = await quoteRes.json();
-            quotes = qd.plans ?? {};
+          const drugPayload = drgs.map((d) => ({
+            rxcui: d.rxcui ?? null,
+            ndc: d.ndc ?? null,
+            scdRxCuis: d.scdRxCuis ?? [],
+            fillsPerYear: d.fillsPerYear,
+            name: d.n,
+          }));
+          const allIds = plans.map((p) => p.id);
+          const CHUNK = 150;
+          const chunks: string[][] = [];
+          for (let i = 0; i < allIds.length; i += CHUNK) {
+            chunks.push(allIds.slice(i, i + CHUNK));
+          }
+          const responses = await Promise.all(
+            chunks.map((ids) =>
+              fetch("/api/plans/quote", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  year: yr,
+                  planIds: ids,
+                  drugs: drugPayload,
+                  options: {
+                    pharmacy: mailOrder ? "mail" : "preferred_retail",
+                    estimateMode: "naive",
+                  },
+                }),
+              })
+                .then((r) => (r.ok ? r.json() : null))
+                .catch(() => null),
+            ),
+          );
+          for (const qd of responses) {
+            if (qd?.plans) Object.assign(quotes, qd.plans);
           }
         }
 

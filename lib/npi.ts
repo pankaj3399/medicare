@@ -61,13 +61,16 @@ function mapResult(r: NPIResult, type: 1 | 2): Doctor {
 export async function searchDoctors(
   query: string,
   used: string[],
+  state?: string,
 ): Promise<Doctor[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 
   let groups: { type: 1 | 2; results: NPIResult[] }[] = [];
   try {
-    const res = await fetch(`/api/doctors?q=${encodeURIComponent(q)}`);
+    const params = new URLSearchParams({ q });
+    if (state && /^[A-Za-z]{2}$/.test(state)) params.set("state", state.toUpperCase());
+    const res = await fetch(`/api/doctors?${params.toString()}`);
     if (!res.ok) return [];
     const data = await res.json();
     groups = data.groups ?? [];

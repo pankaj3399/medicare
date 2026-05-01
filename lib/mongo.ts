@@ -66,3 +66,110 @@ export async function plansCol(): Promise<Collection<PlanDoc>> {
   const db = await getDb();
   return db.collection<PlanDoc>("plans");
 }
+
+export type PlanFormularyMapDoc = {
+  year: number;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  formularyId: string;
+  premium?: number | null;
+  deductible?: number | null;
+  icl?: number | null;
+};
+
+export type FormularyDrugDoc = {
+  year: number;
+  formularyId: string;
+  rxcui: number;
+  ndc?: string | null;
+  tier: number | null;
+  quantityLimit: boolean;
+  quantityAmount: number | null;
+  quantityDays: number | null;
+  priorAuth: boolean;
+  stepTherapy: boolean;
+};
+
+export type TierCostDoc = {
+  year: number;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  coverageLevel: number;
+  tier: number;
+  daysSupply: number;
+  prefType: number | null;
+  prefAmt: number | null;
+  prefMin: number | null;
+  prefMax: number | null;
+  stdType: number | null;
+  stdAmt: number | null;
+  mailPrefType: number | null;
+  mailPrefAmt: number | null;
+  specialty: boolean;
+  dedApplies: boolean;
+};
+
+export async function planFormularyMapCol(): Promise<Collection<PlanFormularyMapDoc>> {
+  const db = await getDb();
+  return db.collection<PlanFormularyMapDoc>("planFormularyMap");
+}
+
+export async function formularyDrugsCol(): Promise<Collection<FormularyDrugDoc>> {
+  const db = await getDb();
+  return db.collection<FormularyDrugDoc>("formularyDrugs");
+}
+
+export async function tierCostsCol(): Promise<Collection<TierCostDoc>> {
+  const db = await getDb();
+  return db.collection<TierCostDoc>("tierCosts");
+}
+
+export type CarrierFhirEndpointDoc = {
+  parentOrg: string;
+  fhirBase: string;
+  notes?: string | null;
+  enabled: boolean;
+};
+
+export type PlanNetworkMapDoc = {
+  year: number;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  parentOrg: string;
+  networkIds: string[];
+  networkRefKind?: "Network" | "Organization" | null;
+  networkName?: string | null;
+  lastSyncedAt: Date;
+};
+
+export type DoctorPlanAcceptanceDoc = {
+  npi: string;
+  contractId: string;
+  planId: string;
+  segmentId: string;
+  inNetwork: "yes" | "no" | "unknown";
+  source: "fhir" | "manual";
+  reason?: string | null;
+  acceptingPatients?: "yes" | "no" | "existing" | "unknown" | null;
+  practiceLocations?: string[];
+  checkedAt: Date;
+  ttlExpiresAt: Date;
+};
+
+export async function carrierFhirEndpointsCol(): Promise<Collection<CarrierFhirEndpointDoc>> {
+  const db = await getDb();
+  return db.collection<CarrierFhirEndpointDoc>("carrierFhirEndpoints");
+}
+
+export async function planNetworkMapCol(): Promise<Collection<PlanNetworkMapDoc>> {
+  const db = await getDb();
+  return db.collection<PlanNetworkMapDoc>("planNetworkMap");
+}
+
+export async function doctorPlanAcceptanceCol(): Promise<Collection<DoctorPlanAcceptanceDoc>> {
+  const db = await getDb();
+  return db.collection<DoctorPlanAcceptanceDoc>("doctorPlanAcceptance");
+}

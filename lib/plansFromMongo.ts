@@ -119,9 +119,12 @@ export async function findPlansByIds(
 
   if (triples.length === 0) return new Map();
 
+  // The plans collection holds one row per plan-per-county, so a single
+  // contract+plan+segment can match dozens of duplicate docs. Cap generously
+  // so every requested plan gets at least one row — dedup happens below.
   const docs = await col
     .find({ year, $or: triples })
-    .limit(triples.length * 2)
+    .limit(triples.length * 100)
     .toArray();
 
   const out = new Map<string, PlanResult>();
