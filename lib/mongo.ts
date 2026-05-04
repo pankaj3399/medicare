@@ -60,6 +60,10 @@ export type PlanDoc = {
   starPartC?: number | null;
   starPartD?: number | null;
   starOverall?: number | null;
+  pcpCopayInNetwork?: number | null;
+  pcpCoinsuranceInNetwork?: number | null;
+  specialistCopayInNetwork?: number | null;
+  specialistCoinsuranceInNetwork?: number | null;
 };
 
 export async function plansCol(): Promise<Collection<PlanDoc>> {

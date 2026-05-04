@@ -36,6 +36,10 @@ function toResult(p: PlanDoc): PlanResult {
     whyChoose: [],
     parentOrg: p.parentOrg ?? null,
     countyName: p.countyName ?? null,
+    pcpCopay: p.pcpCopayInNetwork ?? null,
+    pcpCoinsurance: p.pcpCoinsuranceInNetwork ?? null,
+    specialistCopay: p.specialistCopayInNetwork ?? null,
+    specialistCoinsurance: p.specialistCoinsuranceInNetwork ?? null,
   };
 }
 
@@ -82,6 +86,10 @@ export async function findPlansByZip(
         starPartC: 1,
         starPartD: 1,
         snpIndicator: 1,
+        pcpCopayInNetwork: 1,
+        pcpCoinsuranceInNetwork: 1,
+        specialistCopayInNetwork: 1,
+        specialistCoinsuranceInNetwork: 1,
       },
     })
     .limit(2000)
