@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWizard } from "@/store/wizard";
+import { lookupCounty } from "@/lib/zipCounty";
 
 export default function StepZip() {
   const zip = useWizard((s) => s.zip);
@@ -11,6 +12,25 @@ export default function StepZip() {
   const [local, setLocal] = useState(zip);
   const [year, setYear] = useState(yr);
   const [err, setErr] = useState(false);
+  const [county, setCounty] = useState<{ countyName: string; state: string } | null>(null);
+
+  useEffect(() => {
+    if (local.length !== 5) {
+      setCounty(null);
+      return;
+    }
+    let cancelled = false;
+    lookupCounty(local)
+      .then((c) => {
+        if (!cancelled) setCounty(c);
+      })
+      .catch(() => {
+        if (!cancelled) setCounty(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [local]);
 
   const next = () => {
     if (local.length !== 5) {
@@ -46,6 +66,16 @@ export default function StepZip() {
             {err && (
               <div style={{ color: "var(--red)", fontSize: 12, marginTop: 5 }}>
                 Please enter a valid 5-digit ZIP
+              </div>
+            )}
+            {county && (
+              <div style={{ color: "var(--i3)", fontSize: 12, marginTop: 5 }}>
+                📍 {county.countyName} County, {county.state}
+              </div>
+            )}
+            {!county && local.length === 5 && (
+              <div style={{ color: "var(--i3)", fontSize: 12, marginTop: 5, opacity: 0.7 }}>
+                County not found
               </div>
             )}
           </div>

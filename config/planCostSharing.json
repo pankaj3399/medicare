@@ -1,0 +1,20 @@
+{
+  "_comment": "Manual overlay for PCP & Specialist office-visit cost-sharing. Each entry is keyed by 'YEAR-CONTRACTID-PLANID-SEGMENTID' and matches a plan exactly. Copy values from the carrier's plan-detail page (e.g. uhc.com, aetnamedicare.com, humana.com) or from medicare.gov's Plan Finder. Run `node scripts/seedPbpOverlay.mjs` after editing.",
+  "_fields": {
+    "pcpCopay": "Dollar copay for in-network primary-care visit. Use 0 for $0. Set to null if the plan uses coinsurance.",
+    "pcpCoinsurance": "Percent (0-100) for in-network primary-care visit. Set to null if the plan uses a flat copay.",
+    "specialistCopay": "Dollar copay for in-network specialist visit. Use 0 for $0. Set to null if the plan uses coinsurance.",
+    "specialistCoinsurance": "Percent (0-100) for in-network specialist visit. Set to null if the plan uses a flat copay.",
+    "source": "Free-text URL or note for traceability. Not stored in MongoDB."
+  },
+  "plans": [
+    {
+      "key": "2026-H0609-027-000",
+      "pcpCopay": 0,
+      "pcpCoinsurance": null,
+      "specialistCopay": 20,
+      "specialistCoinsurance": null,
+      "source": "https://www.uhc.com/medicare/health-plans/details.html/85257/013/H0609027000/2026"
+    }
+  ]
+}

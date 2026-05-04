@@ -21,6 +21,15 @@ function fmtMoney(n: number): string {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
+function fmtCost(
+  copay: number | null | undefined,
+  coins: number | null | undefined,
+): string {
+  if (copay != null) return copay === 0 ? "$0" : `$${Math.round(copay)}`;
+  if (coins != null) return `${coins}%`;
+  return "—";
+}
+
 export default function PlanCard({
   plan,
   match,
@@ -120,6 +129,18 @@ export default function PlanCard({
           <div className="mt2">
             <div className="mv">{fmtMoney(plan.moop)}</div>
             <div className="mk">Max Out-of-Pocket</div>
+          </div>
+          <div className="mt2">
+            <div className={`mv${plan.pcpCopay === 0 ? " fr" : ""}`}>
+              {fmtCost(plan.pcpCopay, plan.pcpCoinsurance)}
+            </div>
+            <div className="mk">PCP Copay</div>
+          </div>
+          <div className="mt2">
+            <div className={`mv${plan.specialistCopay === 0 ? " fr" : ""}`}>
+              {fmtCost(plan.specialistCopay, plan.specialistCoinsurance)}
+            </div>
+            <div className="mk">Specialist Copay</div>
           </div>
           <div className="mt2">
             <div className={`mv${quote ? " fr" : ""}`}>

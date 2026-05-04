@@ -59,6 +59,10 @@ export type PlanResult = {
   whyChoose?: string[];
   parentOrg?: string | null;
   countyName?: string | null;
+  pcpCopay?: number | null;
+  pcpCoinsurance?: number | null;
+  specialistCopay?: number | null;
+  specialistCoinsurance?: number | null;
 };
 
 export type DrugQuote = {
