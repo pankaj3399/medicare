@@ -1,4 +1,5 @@
 import type { Drug } from "@/store/wizard";
+import { parseStrengthForm } from "@/lib/drugFields";
 
 const USAGE_HINTS: Record<string, string> = {
   adderall: "ADHD treatment",
@@ -81,15 +82,19 @@ async function rxNormSearch(q: string, used: string[]): Promise<Drug[]> {
         const id = `rxn_${c.rxcui}`;
         if (used.includes(id)) continue;
         const isBrand = ["SBD", "BN"].includes(tty);
+        const tail = (c.name ?? "").split(" ").slice(1).join(" ");
+        const parsed = parseStrengthForm(c.name);
         out.push({
           id,
           n: base,
-          d: (c.name ?? "").split(" ").slice(1).join(" "),
+          d: tail,
           u: usageHint(base),
           t: isBrand ? 2 : 1,
           e: isBrand ? "Varies by plan" : "$0–$10/mo (est.)",
           rxcui: parseInt(c.rxcui, 10),
           fillsPerYear: 12,
+          strength: parsed.strength,
+          form: parsed.form,
         });
         if (out.length >= 6) break;
       }
@@ -104,15 +109,19 @@ async function rxNormSearch(q: string, used: string[]): Promise<Drug[]> {
         const base = (c.name ?? "").split(" ")[0];
         if (!base || seen.has(base.toLowerCase())) continue;
         seen.add(base.toLowerCase());
+        const tail = (c.name ?? "").split(" ").slice(1).join(" ");
+        const parsed = parseStrengthForm(c.name);
         out.push({
           id: `rxn_${c.rxcui}`,
           n: base,
-          d: (c.name ?? "").split(" ").slice(1).join(" "),
+          d: tail,
           u: usageHint(base),
           t: 2,
           e: "Varies by plan",
           rxcui: parseInt(c.rxcui, 10),
           fillsPerYear: 12,
+          strength: parsed.strength,
+          form: parsed.form,
         });
         if (out.length >= 6) break;
       }
@@ -147,6 +156,7 @@ async function fdaSearch(q: string, used: string[]): Promise<Drug[]> {
       const description = `${form}${route ? " · " + route : ""}${sched ? " · Schedule " + sched : ""}`
         .replace(/^· /, "")
         .trim();
+      const parsed = parseStrengthForm(`${form} ${r.active_ingredients?.[0]?.strength ?? ""}`);
       out.push({
         id,
         n: nm,
@@ -159,6 +169,8 @@ async function fdaSearch(q: string, used: string[]): Promise<Drug[]> {
         e: sched ? "May need prior auth" : gen ? "$0–$10/mo (est.)" : "Varies by plan",
         ndc: r.product_ndc,
         fillsPerYear: 12,
+        strength: parsed.strength,
+        form: parsed.form,
       });
       if (out.length >= 6) break;
     }

@@ -9,6 +9,19 @@ export type Doctor = {
   npi?: string;
 };
 
+export type DrugForm =
+  | "Tablet"
+  | "Capsule"
+  | "Liquid"
+  | "Injection"
+  | "Inhaler"
+  | "Patch"
+  | "Topical"
+  | "Drops"
+  | "Other";
+
+export type DaysSupply = 30 | 60 | 90;
+
 export type Drug = {
   id: string;
   n: string;
@@ -20,6 +33,10 @@ export type Drug = {
   ndc?: string;
   fillsPerYear: number;
   scdRxCuis?: number[];
+  strength?: string;
+  form?: DrugForm;
+  quantity?: number;
+  daysSupply?: DaysSupply;
 };
 
 export type Priority =
@@ -123,6 +140,12 @@ export type WizardState = {
   removeDrug: (id: string) => void;
   setDrugFills: (id: string, fills: number) => void;
   setDrugSCDs: (id: string, scds: number[]) => void;
+  setDrugFields: (
+    id: string,
+    patch: Partial<
+      Pick<Drug, "strength" | "form" | "quantity" | "daysSupply" | "scdRxCuis">
+    >,
+  ) => void;
   togglePriority: (p: Priority) => void;
   setWeight: (p: Priority, v: number) => void;
   setMailOrder: (v: boolean) => void;
@@ -162,6 +185,7 @@ const initial: Omit<
   | "removeDrug"
   | "setDrugFills"
   | "setDrugSCDs"
+  | "setDrugFields"
   | "togglePriority"
   | "setWeight"
   | "setMailOrder"
@@ -223,7 +247,19 @@ export const useWizard = create<WizardState>()(
 
       addDrug: (d) => {
         if (get().drgs.some((x) => x.id === d.id)) return;
-        set({ drgs: [...get().drgs, { ...d, fillsPerYear: d.fillsPerYear ?? 12 }] });
+        const days = (d.daysSupply ?? 30) as DaysSupply;
+        set({
+          drgs: [
+            ...get().drgs,
+            {
+              ...d,
+              fillsPerYear: d.fillsPerYear ?? Math.ceil(365 / days),
+              quantity: d.quantity ?? 30,
+              daysSupply: days,
+              form: d.form ?? "Tablet",
+            },
+          ],
+        });
       },
       removeDrug: (id) => set({ drgs: get().drgs.filter((d) => d.id !== id) }),
       setDrugFills: (id, fills) =>
@@ -239,6 +275,20 @@ export const useWizard = create<WizardState>()(
           drgs: get().drgs.map((d) =>
             d.id === id ? { ...d, scdRxCuis: scds } : d,
           ),
+        }),
+      setDrugFields: (id, patch) =>
+        set({
+          drgs: get().drgs.map((d) => {
+            if (d.id !== id) return d;
+            const next: Drug = { ...d, ...patch };
+            if (patch.daysSupply && patch.daysSupply !== d.daysSupply) {
+              next.fillsPerYear = Math.ceil(365 / patch.daysSupply);
+            }
+            if (typeof next.quantity === "number") {
+              next.quantity = Math.max(1, Math.min(365, next.quantity | 0));
+            }
+            return next;
+          }),
         }),
 
       togglePriority: (p) => {
@@ -289,7 +339,8 @@ export const useWizard = create<WizardState>()(
         w: s.w,
         mailOrder: s.mailOrder,
       }),
-      version: 1,
+      version: 2,
+      migrate: (state) => state as WizardState,
     },
   ),
 );

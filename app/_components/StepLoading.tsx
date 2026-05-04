@@ -60,6 +60,10 @@ export default function StepLoading() {
             scdRxCuis: d.scdRxCuis ?? [],
             fillsPerYear: d.fillsPerYear,
             name: d.n,
+            strength: d.strength,
+            form: d.form,
+            quantity: d.quantity,
+            daysSupply: d.daysSupply,
           }));
           const allIds = plans.map((p) => p.id);
           const CHUNK = 150;

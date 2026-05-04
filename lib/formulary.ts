@@ -47,6 +47,10 @@ function preferredDaysSupply(pharmacy: Pharmacy): number {
   return pharmacy === "mail" ? 3 : 1;
 }
 
+function daysSupplyCode(days: 30 | 60 | 90): number {
+  return days === 90 ? 3 : days === 60 ? 2 : 1;
+}
+
 export async function getFormularyIds(
   year: number,
   keys: PlanKey[],
@@ -125,9 +129,13 @@ export async function lookupCopays(
   keys: PlanKey[],
   tier: number,
   pharmacy: Pharmacy,
+  daysSupplyOverride?: 30 | 60 | 90,
 ): Promise<Map<string, ResolvedCopay>> {
   if (keys.length === 0) return new Map();
-  const wantDays = preferredDaysSupply(pharmacy);
+  const wantDays =
+    daysSupplyOverride !== undefined
+      ? daysSupplyCode(daysSupplyOverride)
+      : preferredDaysSupply(pharmacy);
   const col = await tierCostsCol();
   const docs = await col
     .find({

@@ -1,18 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWizard, type Drug } from "@/store/wizard";
+import { useWizard, type Drug, type DrugForm, type DaysSupply } from "@/store/wizard";
 import { searchDrugs } from "@/lib/rxsearch";
+import { parseStrengthForm } from "@/lib/drugFields";
 
 const TIER_LABEL = ["", "Tier 1 — Generic", "Tier 2 — Preferred Brand", "Tier 3 — Non-Preferred", "Tier 4 — Specialty"];
+const TIER_SHORT = ["", "Tier 1", "Tier 2", "Tier 3", "Tier 4"];
 const TIER_CLASS = ["", "t1", "t2", "t3", "t4"];
+
+const FORM_OPTIONS: DrugForm[] = [
+  "Tablet",
+  "Capsule",
+  "Liquid",
+  "Injection",
+  "Inhaler",
+  "Patch",
+  "Topical",
+  "Drops",
+  "Other",
+];
+
+const DAYS_OPTIONS: DaysSupply[] = [30, 60, 90];
 
 export default function StepDrugs() {
   const drgs = useWizard((s) => s.drgs);
   const addDrug = useWizard((s) => s.addDrug);
   const removeDrug = useWizard((s) => s.removeDrug);
-  const setDrugFills = useWizard((s) => s.setDrugFills);
-  const setDrugSCDs = useWizard((s) => s.setDrugSCDs);
+  const setDrugFields = useWizard((s) => s.setDrugFields);
   const goStep = useWizard((s) => s.goStep);
 
   const [q, setQ] = useState("");
@@ -56,7 +71,18 @@ export default function StepDrugs() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.scdRxCuis)) setDrugSCDs(d.id, data.scdRxCuis);
+          const patch: Parameters<typeof setDrugFields>[1] = {};
+          if (Array.isArray(data.scdRxCuis)) patch.scdRxCuis = data.scdRxCuis;
+          if (!d.strength || !d.form) {
+            const ttyMap = (data.ttyMap ?? {}) as Record<string, string>;
+            for (const label of Object.values(ttyMap)) {
+              const parsed = parseStrengthForm(label);
+              if (!d.strength && parsed.strength) patch.strength = parsed.strength;
+              if (!d.form && parsed.form) patch.form = parsed.form;
+              if (patch.strength && patch.form) break;
+            }
+          }
+          if (Object.keys(patch).length) setDrugFields(d.id, patch);
         }
       } catch {
         // resolve is best-effort; quote will fall back to ingredient rxcui
@@ -157,9 +183,13 @@ export default function StepDrugs() {
                           <div
                             className="ddn"
                             dangerouslySetInnerHTML={{
-                              __html: highlight(h.n, q) + (h.d
-                                ? ` <span style="font-weight:400;color:var(--i3);font-size:12px">${escape(h.d.substring(0, 35))}</span>`
-                                : ""),
+                              __html:
+                                highlight(h.n, q) +
+                                (h.strength
+                                  ? ` <span style="font-weight:500;color:var(--i2);font-size:13px">${escape(h.strength)}</span>`
+                                  : h.d
+                                    ? ` <span style="font-weight:400;color:var(--i3);font-size:12px">${escape(h.d.substring(0, 35))}</span>`
+                                    : ""),
                             }}
                           />
                           <div className="ddd">
@@ -194,18 +224,23 @@ export default function StepDrugs() {
             </div>
           </div>
         ) : (
-          <div className="tl2" style={{ display: "flex" }}>
+          <div className="drglist">
             {drgs.map((d) => (
-              <DrugTag key={d.id} drug={d} onChange={(v) => setDrugFills(d.id, v)} onRemove={() => removeDrug(d.id)} />
+              <DrugCard
+                key={d.id}
+                drug={d}
+                onChange={(patch) => setDrugFields(d.id, patch)}
+                onRemove={() => removeDrug(d.id)}
+              />
             ))}
           </div>
         )}
         <div className="cal tl">
           <span className="cali">💡</span>
           <div>
-            <strong style={{ fontWeight: 600 }}>Drug tiers matter:</strong> Tier 1 generics
-            cost $0–$10/mo. Tier 4 specialty drugs can cost hundreds. We factor this into your
-            match score.
+            <strong style={{ fontWeight: 600 }}>Add dosage & quantity for accurate pricing.</strong>{" "}
+            Like UnitedHealthcare's plan tool, we use your strength, fill quantity, and days supply
+            to estimate real annual drug cost on each plan — not just the tier.
           </div>
         </div>
       </div>
@@ -236,46 +271,91 @@ export default function StepDrugs() {
   );
 }
 
-function DrugTag({
+function DrugCard({
   drug,
   onChange,
   onRemove,
 }: {
   drug: Drug;
-  onChange: (v: number) => void;
+  onChange: (patch: Parameters<ReturnType<typeof useWizard.getState>["setDrugFields"]>[1]) => void;
   onRemove: () => void;
 }) {
+  const tier = TIER_CLASS[drug.t] ?? "t2";
+  const tierLabel = TIER_SHORT[drug.t] ?? "Rx";
+  const strength = drug.strength ?? "";
+  const form = drug.form ?? "Tablet";
+  const quantity = drug.quantity ?? 30;
+  const daysSupply = drug.daysSupply ?? 30;
+  const sub = drug.d ? drug.d.substring(0, 40) : "";
+
   return (
-    <div className="tag drg">
-      <span>💊</span>
-      {drug.n}
-      <span className="fillstep" title="How many times you pick up this prescription each year. Most people pick monthly = 12 fills.">
+    <div className="drugcard">
+      <div className="drugcard-head">
+        <span className="drugcard-emoji">💊</span>
+        <span className="drugcard-name">{drug.n}</span>
+        {strength && <span className="drugcard-sub">{strength}</span>}
+        {!strength && sub && <span className="drugcard-sub">{sub}</span>}
+        <span className={`ddb drugcard-tier ${tier}`}>{tierLabel}</span>
         <button
           type="button"
-          aria-label="Fewer fills"
-          onClick={() => onChange(drug.fillsPerYear - 1)}
+          className="drugcard-x"
+          onClick={onRemove}
+          aria-label={`Remove ${drug.n}`}
         >
-          −
+          ✕
         </button>
-        <input
-          type="number"
-          min={1}
-          max={24}
-          value={drug.fillsPerYear}
-          onChange={(e) => onChange(parseInt(e.target.value, 10) || 12)}
-        />
-        <button
-          type="button"
-          aria-label="More fills"
-          onClick={() => onChange(drug.fillsPerYear + 1)}
-        >
-          +
-        </button>
-        <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 2 }}>fills/yr</span>
-      </span>
-      <button className="tx" onClick={onRemove} type="button">
-        ✕
-      </button>
+      </div>
+      <div className="drugcard-grid">
+        <div className="drugcard-field">
+          <label htmlFor={`dose-${drug.id}`}>Dosage</label>
+          <input
+            id={`dose-${drug.id}`}
+            type="text"
+            value={strength}
+            placeholder="e.g. 10mg"
+            onChange={(e) => onChange({ strength: e.target.value })}
+          />
+        </div>
+        <div className="drugcard-field">
+          <label htmlFor={`form-${drug.id}`}>Form</label>
+          <select
+            id={`form-${drug.id}`}
+            value={form}
+            onChange={(e) => onChange({ form: e.target.value as DrugForm })}
+          >
+            {FORM_OPTIONS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="drugcard-field">
+          <label htmlFor={`qty-${drug.id}`}>Quantity</label>
+          <input
+            id={`qty-${drug.id}`}
+            type="number"
+            min={1}
+            max={365}
+            value={quantity}
+            onChange={(e) => onChange({ quantity: parseInt(e.target.value, 10) || 30 })}
+          />
+        </div>
+        <div className="drugcard-field">
+          <label htmlFor={`days-${drug.id}`}>Days Supply</label>
+          <select
+            id={`days-${drug.id}`}
+            value={daysSupply}
+            onChange={(e) => onChange({ daysSupply: parseInt(e.target.value, 10) as DaysSupply })}
+          >
+            {DAYS_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} days
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }
