@@ -25,6 +25,10 @@ const Body = z.object({
       scdRxCuis: z.array(z.number().int()).optional(),
       fillsPerYear: z.number().min(1).max(24),
       name: z.string().min(1),
+      strength: z.string().max(40).optional(),
+      form: z.string().max(40).optional(),
+      quantity: z.number().int().min(1).max(365).optional(),
+      daysSupply: z.union([z.literal(30), z.literal(60), z.literal(90)]).optional(),
     }),
   ),
   options: z
@@ -118,23 +122,34 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3) Pre-fetch tier copays per (plan, tier) — group calls by tier number.
-  const copayByPlanAndTier = new Map<string, Map<number, { monthly: number; costType: string }>>();
+  // 3) Pre-fetch tier copays per (plan, tier, daysSupply). Drugs can each
+  // pick a different days-supply; we fetch each pair once.
+  const copayByPlanAndTier = new Map<
+    string,
+    Map<string, { monthly: number; costType: string }>
+  >();
+  const copayKey = (tier: number, days: 30 | 60 | 90) => `${tier}:${days}`;
   if (cmsDataAvailable) {
-    const neededTiers = new Set<number>();
-    for (const m of tierMatrix.values()) {
-      for (const t of m.values()) neededTiers.add(t.tier);
+    const neededPairs = new Set<string>();
+    for (const [di, m] of tierMatrix.entries()) {
+      const drug = body.drugs[di];
+      const days = (drug.daysSupply ?? (pharmacy === "mail" ? 90 : 30)) as 30 | 60 | 90;
+      for (const t of m.values()) neededPairs.add(`${t.tier}:${days}`);
     }
-    for (const tier of neededTiers) {
+    for (const pair of neededPairs) {
+      const [tierStr, daysStr] = pair.split(":");
+      const tier = parseInt(tierStr, 10);
+      const days = parseInt(daysStr, 10) as 30 | 60 | 90;
       try {
-        const copays = await lookupCopays(body.year, planKeys, tier, pharmacy);
+        const copays = await lookupCopays(body.year, planKeys, tier, pharmacy, days);
         for (const [k, copay] of copays) {
-          const planMap = copayByPlanAndTier.get(k) ?? new Map<number, { monthly: number; costType: string }>();
-          planMap.set(tier, { monthly: copay.monthly, costType: copay.costType });
+          const planMap =
+            copayByPlanAndTier.get(k) ?? new Map<string, { monthly: number; costType: string }>();
+          planMap.set(copayKey(tier, days), { monthly: copay.monthly, costType: copay.costType });
           copayByPlanAndTier.set(k, planMap);
         }
       } catch (err) {
-        console.warn("[/api/plans/quote] copay lookup failed for tier:", tier, err);
+        console.warn("[/api/plans/quote] copay lookup failed for pair:", pair, err);
       }
     }
   }
@@ -210,13 +225,15 @@ export async function POST(request: Request) {
         continue;
       }
 
+      const drugDays = (d.daysSupply ?? (pharmacy === "mail" ? 90 : 30)) as 30 | 60 | 90;
+
       // D-SNP plans charge $0 cost-share to dual-eligibles.
       let monthly: number;
       if (plan.isDsnp) {
         monthly = 0;
       } else if (cmsDataAvailable && !usedHeuristic) {
         const tierMap = copayByPlanAndTier.get(planLookupKey);
-        const copay = tierMap?.get(tier);
+        const copay = tierMap?.get(copayKey(tier, drugDays));
         if (!copay) {
           // CMS file didn't publish a price for this tier on this plan
           // (rare — usually means the plan lists the drug but the cost
@@ -238,7 +255,7 @@ export async function POST(request: Request) {
         notes.push(`Insulin $35/month cap applied to ${d.name}`);
       }
 
-      const monthsPerFill = pharmacy === "mail" ? 3 : 1;
+      const monthsPerFill = drugDays === 90 ? 3 : drugDays === 60 ? 2 : 1;
       const billable = Math.max(1, Math.round(d.fillsPerYear / monthsPerFill));
       const annual = monthly * billable * monthsPerFill;
       annualTotal += annual;
