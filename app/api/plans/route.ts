@@ -6,6 +6,7 @@ import {
   ideonZipCounties,
   mapIdeonPlan,
 } from "@/lib/ideon";
+import { enrichPlan } from "@/lib/planExtras";
 import { zipToState, type PlanResult } from "@/store/wizard";
 
 export const runtime = "nodejs";
@@ -84,21 +85,28 @@ export async function GET(request: Request) {
     countyName: string | null;
   } | null = null;
 
-  try {
-    const ideon = await fetchIdeonPlans(zip, year);
-    if (ideon && ideon.plans.length > 0) {
-      result = ideon;
-      source = "ideon";
-    }
-  } catch (err) {
-    if (err instanceof IdeonError) {
-      console.warn(
-        `[plans] ideon failed status=${err.status}, falling back to mongo. snippet=${err.bodySnippet.slice(0, 200)}`,
-      );
-    } else {
-      console.warn(
-        `[plans] ideon unexpected, falling back to mongo: ${err instanceof Error ? err.message : "unknown"}`,
-      );
+  // Skip Ideon when the user has Medicaid: Ideon's trial /plans/medadv/search
+  // does not include D-SNPs, so it would return an irrelevant non-DSNP list.
+  // CMS-seeded MongoDB has the D-SNPs.
+  const skipIdeon = medicaid === true;
+
+  if (!skipIdeon) {
+    try {
+      const ideon = await fetchIdeonPlans(zip, year);
+      if (ideon && ideon.plans.length > 0) {
+        result = ideon;
+        source = "ideon";
+      }
+    } catch (err) {
+      if (err instanceof IdeonError) {
+        console.warn(
+          `[plans] ideon failed status=${err.status}, falling back to mongo. snippet=${err.bodySnippet.slice(0, 200)}`,
+        );
+      } else {
+        console.warn(
+          `[plans] ideon unexpected, falling back to mongo: ${err instanceof Error ? err.message : "unknown"}`,
+        );
+      }
     }
   }
 
@@ -125,6 +133,10 @@ export async function GET(request: Request) {
   if (source === "ideon" && medicaid === false) {
     plans = plans.filter((p) => !p.isDsnp);
   }
+  if (medicaid === true) {
+    plans = plans.filter((p) => p.isDsnp);
+  }
+  plans = plans.map(enrichPlan);
 
   return NextResponse.json(
     {

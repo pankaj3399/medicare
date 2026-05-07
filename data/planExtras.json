@@ -1,0 +1,10 @@
+{
+  "_comment": "Per-plan supplemental benefits keyed by contractId-planId. Neither CMS Plan Finder nor the Ideon trial endpoint exposes the OTC card dollar amount, so this file holds curated values. Update as the broker confirms exact values from each carrier's Summary of Benefits.",
+  "H0321-004": { "otc": 2400, "carrierOtcLabel": "UCard $200/mo" },
+  "H0321-002": { "otc": 2400, "carrierOtcLabel": "UCard $200/mo" },
+  "H5580-004": { "otc": 1800, "carrierOtcLabel": "Mercy Care OTC + Healthy Food $150/mo" },
+  "H5580-001": { "otc": 1800, "carrierOtcLabel": "Mercy Care OTC + Healthy Food $150/mo" },
+  "H4931-015": { "otc": 1560, "carrierOtcLabel": "Banner Flex Card $130/mo" },
+  "H4931-007": { "otc": 1560, "carrierOtcLabel": "Banner Flex Card $130/mo" },
+  "H5590-010": { "otc": 1800, "carrierOtcLabel": "Wellcare OTC + Grocery $150/mo" }
+}
